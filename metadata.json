@@ -1,0 +1,7 @@
+{
+  "name": "Karachi Sale Mela Pasrur",
+  "description": "Showcase app for Karachi Sale Mela Pasrur featuring varieties, sale rates, daily new arrivals, shop gallery, proprietor Sheikh Danish, WhatsApp contact, and Google Maps location.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

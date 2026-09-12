@@ -1,10 +1,16 @@
 package com.example.ui
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,9 +29,49 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.R
 import com.example.data.DailyArrivalEntity
 import com.example.ui.theme.*
+
+fun categoryToArrivalDrawable(category: String): Int {
+    val catLower = category.lowercase()
+    return when {
+        catLower.contains("cosmetic") || catLower.contains("perfume") -> R.drawable.img_cosmetics_items
+        catLower.contains("hosiery") || catLower.contains("textile") || catLower.contains("linen") -> R.drawable.img_hosiery_items
+        catLower.contains("plastic") || catLower.contains("household") -> R.drawable.img_plastic_items
+        catLower.contains("bag") || catLower.contains("pouch") -> R.drawable.img_bags_items
+        catLower.contains("toy") || catLower.contains("kid") -> R.drawable.img_toys_items
+        catLower.contains("decor") || catLower.contains("clock") -> R.drawable.img_clocks_decor
+        catLower.contains("crockery") || catLower.contains("kitchen") -> R.drawable.img_crockery_items
+        catLower.contains("jewel") -> R.drawable.img_jewellery_collection
+        else -> R.drawable.img_crockery_items
+    }
+}
+
+fun resolveArrivalImageModel(imageResName: String, category: String = ""): Any {
+    return when {
+        imageResName.startsWith("content://") || imageResName.startsWith("file://") -> {
+            Uri.parse(imageResName)
+        }
+        imageResName == "img_plastic_items" -> R.drawable.img_plastic_items
+        imageResName == "img_hosiery_items" -> R.drawable.img_hosiery_items
+        imageResName == "img_cosmetics_items" -> R.drawable.img_cosmetics_items
+        imageResName == "img_crockery_items" -> R.drawable.img_crockery_items
+        imageResName == "img_jewellery_collection" -> R.drawable.img_jewellery_collection
+        imageResName == "img_bags_items" -> R.drawable.img_bags_items
+        imageResName == "img_toys_items" -> R.drawable.img_toys_items
+        imageResName == "img_clocks_decor" -> R.drawable.img_clocks_decor
+        imageResName == "img_shop_front" -> R.drawable.img_shop_front
+        imageResName == "img_proprietor_counter" -> R.drawable.img_proprietor_counter
+        imageResName == "img_sale_banner" -> R.drawable.img_sale_banner
+        imageResName == "img_shop_bazaar_view" -> R.drawable.img_shop_bazaar_view
+        imageResName == "img_shop_interior" -> {
+            if (category.isNotBlank()) categoryToArrivalDrawable(category) else R.drawable.img_shop_interior
+        }
+        else -> categoryToArrivalDrawable(category)
+    }
+}
 
 @Composable
 fun DailyArrivalsScreen(
@@ -40,8 +86,8 @@ fun DailyArrivalsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { viewModel.setAddArrivalDialogVisible(true) },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add New Arrival") },
-                text = { Text("Update New Arrival", fontWeight = FontWeight.Bold) },
+                icon = { Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Add New Arrival") },
+                text = { Text("Upload New Arrival", fontWeight = FontWeight.Bold) },
                 containerColor = MelaCrimson,
                 contentColor = Color.White,
                 shape = RoundedCornerShape(16.dp),
@@ -99,9 +145,10 @@ fun DailyArrivalsScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Latest arrivals displayed first. Stock updated daily in Pasrur shop!",
+                                text = "Real daily stock photos from Loharan Mandi Bazaar Pasrur. Tap 'Upload New Arrival' or tap camera on any card to update photos!",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                                lineHeight = 16.sp
                             )
                         }
                     }
@@ -131,7 +178,7 @@ fun DailyArrivalsScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Tap 'Update New Arrival' below to post today's stock!",
+                                text = "Tap 'Upload New Arrival' below to post today's stock!",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.outline
                             )
@@ -149,6 +196,10 @@ fun DailyArrivalsScreen(
                         },
                         onDelete = {
                             viewModel.removeArrival(arrival.id)
+                        },
+                        onUpdateImage = { newImage ->
+                            viewModel.updateArrivalImage(arrival.id, newImage)
+                            Toast.makeText(context, "تصویر اپ ڈیٹ ہو گئی • Photo updated successfully!", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }
@@ -164,8 +215,9 @@ fun DailyArrivalsScreen(
     if (showAddDialog) {
         AddArrivalDialog(
             onDismiss = { viewModel.setAddArrivalDialogVisible(false) },
-            onConfirm = { title, category, priceTier, date, desc ->
-                viewModel.addNewArrival(title, category, priceTier, date, desc)
+            onConfirm = { title, category, priceTier, date, desc, imageResName ->
+                viewModel.addNewArrival(title, category, priceTier, date, desc, imageResName)
+                Toast.makeText(context, "نئی ورائٹی اور تصویر اپ لوڈ ہو گئی • New arrival posted!", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -175,8 +227,19 @@ fun DailyArrivalsScreen(
 fun DailyArrivalCard(
     arrival: DailyArrivalEntity,
     onWhatsAppInquiry: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onUpdateImage: (String) -> Unit
 ) {
+    var showChangePhotoDialog by remember { mutableStateOf(false) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            onUpdateImage(uri.toString())
+            showChangePhotoDialog = false
+        }
+    }
+
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -186,26 +249,19 @@ fun DailyArrivalCard(
             .testTag("arrival_card_${arrival.id}")
     ) {
         Column {
-            // Image header if available
-            val drawableRes = when (arrival.imageResName) {
-                "img_shop_front" -> R.drawable.img_shop_front
-                "img_sale_banner" -> R.drawable.img_sale_banner
-                else -> R.drawable.img_shop_interior
-            }
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(170.dp)
             ) {
-                Image(
-                    painter = painterResource(id = drawableRes),
+                AsyncImage(
+                    model = resolveArrivalImageModel(arrival.imageResName, arrival.category),
                     contentDescription = arrival.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Arrival Date Badge
+                // Arrival Date Badge (Top Start)
                 Surface(
                     color = MelaCrimson,
                     shape = RoundedCornerShape(bottomEnd = 12.dp),
@@ -231,7 +287,7 @@ fun DailyArrivalCard(
                     }
                 }
 
-                // Price Badge
+                // Price Badge (Top End)
                 Surface(
                     color = Rate300,
                     shape = RoundedCornerShape(bottomStart = 12.dp),
@@ -244,6 +300,35 @@ fun DailyArrivalCard(
                         fontWeight = FontWeight.ExtraBold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
+                }
+
+                // Upload / Change Photo Floating Action (Bottom End)
+                Surface(
+                    color = Color.Black.copy(alpha = 0.65f),
+                    shape = RoundedCornerShape(topStart = 12.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .clickable { showChangePhotoDialog = true }
+                        .testTag("change_photo_btn_${arrival.id}")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddPhotoAlternate,
+                            contentDescription = "Change / Upload Picture",
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Upload / Change Photo",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -326,117 +411,288 @@ fun DailyArrivalCard(
             }
         }
     }
+
+    if (showChangePhotoDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangePhotoDialog = false },
+            title = {
+                Text(
+                    text = "Upload / Select Item Photo",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Upload a photo from your phone or choose a shop collection photo:",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Button(
+                        onClick = {
+                            photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MelaCrimson),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Pick Photo from Phone Gallery")
+                    }
+
+                    Text("Shop Collection Presets:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+
+                    val presets = listOf(
+                        Pair("💎 Jewellery & Bridal Set", "img_jewellery_collection"),
+                        Pair("🍽️ Crockery & Dinnerware", "img_crockery_items"),
+                        Pair("💄 Cosmetics & Perfumes", "img_cosmetics_items"),
+                        Pair("🏬 Shop Entrance & Front", "img_shop_front"),
+                        Pair("🛒 Store Aisles & Racks", "img_shop_interior")
+                    )
+
+                    presets.forEach { (label, key) ->
+                        OutlinedButton(
+                            onClick = {
+                                onUpdateImage(key)
+                                showChangePhotoDialog = false
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(label, fontSize = 12.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showChangePhotoDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun AddArrivalDialog(
     onDismiss: () -> Unit,
-    onConfirm: (title: String, category: String, priceTier: String, date: String, desc: String) -> Unit
+    onConfirm: (title: String, category: String, priceTier: String, date: String, desc: String, imageResName: String) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Kitchen & Crockery") }
+    var category by remember { mutableStateOf("Jewellery & Accessories") }
     var priceTier by remember { mutableStateOf("Rs. 300") }
     var arrivalDate by remember { mutableStateOf("Today's Arrival") }
     var description by remember { mutableStateOf("") }
+    var selectedImageUriOrRes by remember { mutableStateOf("img_jewellery_collection") }
 
-    val categories = listOf("Kitchen & Crockery", "Bags & Pouches", "Toys & Kids", "Home Decor & Clocks", "Plastics & Household", "Cosmetics & Perfumes")
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            selectedImageUriOrRes = uri.toString()
+        }
+    }
+
+    val categories = listOf(
+        "Plastics & Household",
+        "Cosmetics & Perfumes",
+        "Textiles & Linens",
+        "Kitchen & Crockery",
+        "Jewellery & Accessories",
+        "Bags & Pouches",
+        "Toys & Kids",
+        "Home Decor & Clocks"
+    )
     val rates = listOf("Rs. 120", "Rs. 300", "Rs. 600", "Rs. 1,200")
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Add Daily New Arrival",
+                text = "Upload Daily New Arrival",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
         },
         text = {
-            Column(
+            LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Item Name / Variety") },
-                    placeholder = { Text("e.g. Glass Water Set 7 Pcs") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text("Sale Rate:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    rates.forEach { rate ->
-                        val isSelected = rate == priceTier
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { priceTier = rate },
-                            label = { Text(rate, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MelaCrimson,
-                                selectedLabelColor = Color.White
-                            )
-                        )
-                    }
+                item {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Item Name / Variety") },
+                        placeholder = { Text("e.g. Plastic Crockery / Hosiery / Cosmetics") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
-                Text("Category:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                var expanded by remember { mutableStateOf(false) }
-                Box {
-                    OutlinedButton(
-                        onClick = { expanded = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
+                item {
+                    Text("Picture for this Item:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.LightGray.copy(alpha = 0.2f))
                     ) {
-                        Text(category, fontSize = 12.sp)
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                        AsyncImage(
+                            model = resolveArrivalImageModel(selectedImageUriOrRes, category),
+                            contentDescription = "Selected Picture",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        categories.forEach { cat ->
-                            DropdownMenuItem(
-                                text = { Text(cat) },
-                                onClick = {
-                                    category = cat
-                                    expanded = false
-                                }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MelaCrimson),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Pick from Gallery", fontSize = 11.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text("Or select category photo preset:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val presets = listOf(
+                            Pair("🪣 Plastic (پلاسٹک کے برتن)", "img_plastic_items"),
+                            Pair("🧦 Hosiery (ہوزری اور جرابیں)", "img_hosiery_items"),
+                            Pair("💄 Cosmetics (کاسمیٹکس)", "img_cosmetics_items"),
+                            Pair("🍽️ Crockery (کروکری)", "img_crockery_items"),
+                            Pair("💎 Jewellery (زیورات)", "img_jewellery_collection"),
+                            Pair("👜 Bags (بیگز)", "img_bags_items"),
+                            Pair("🧸 Toys (کھلونے)", "img_toys_items"),
+                            Pair("🕰️ Clocks (وال کلاک)", "img_clocks_decor")
+                        )
+                        items(presets) { (name, key) ->
+                            FilterChip(
+                                selected = selectedImageUriOrRes == key,
+                                onClick = { selectedImageUriOrRes = key },
+                                label = { Text(name, fontSize = 10.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MelaCrimson,
+                                    selectedLabelColor = Color.White
+                                )
                             )
                         }
                     }
                 }
 
-                OutlinedTextField(
-                    value = arrivalDate,
-                    onValueChange = { arrivalDate = it },
-                    label = { Text("Arrival Tag (e.g. Today's Arrival)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                item {
+                    Text("Sale Rate:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        rates.forEach { rate ->
+                            val isSelected = rate == priceTier
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { priceTier = rate },
+                                label = { Text(rate, fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MelaCrimson,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+                }
 
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Short Description / Notes") },
-                    placeholder = { Text("Details for customers visiting the shop") },
-                    maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                item {
+                    Text("Category:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    var expanded by remember { mutableStateOf(false) }
+                    Box {
+                        OutlinedButton(
+                            onClick = { expanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(category, fontSize = 12.sp)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                        }
+                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            categories.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text(cat) },
+                                    onClick = {
+                                        category = cat
+                                        when (cat) {
+                                            "Plastics & Household" -> selectedImageUriOrRes = "img_plastic_items"
+                                            "Textiles & Linens" -> selectedImageUriOrRes = "img_hosiery_items"
+                                            "Cosmetics & Perfumes" -> selectedImageUriOrRes = "img_cosmetics_items"
+                                            "Kitchen & Crockery" -> selectedImageUriOrRes = "img_crockery_items"
+                                            "Jewellery & Accessories" -> selectedImageUriOrRes = "img_jewellery_collection"
+                                            "Bags & Pouches" -> selectedImageUriOrRes = "img_bags_items"
+                                            "Toys & Kids" -> selectedImageUriOrRes = "img_toys_items"
+                                            "Home Decor & Clocks" -> selectedImageUriOrRes = "img_clocks_decor"
+                                        }
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = arrivalDate,
+                        onValueChange = { arrivalDate = it },
+                        label = { Text("Arrival Tag (e.g. Today's Arrival)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                item {
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Short Description / Notes") },
+                        placeholder = { Text("e.g. Pure Kundan golden finish, complete set") },
+                        maxLines = 3,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onConfirm(title.trim(), category, priceTier, arrivalDate.trim(), description.trim())
+                        onConfirm(title.trim(), category, priceTier, arrivalDate.trim(), description.trim(), selectedImageUriOrRes)
                     }
                 },
                 enabled = title.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = MelaCrimson)
             ) {
-                Text("Post Arrival")
+                Text("Post Arrival & Picture")
             }
         },
         dismissButton = {

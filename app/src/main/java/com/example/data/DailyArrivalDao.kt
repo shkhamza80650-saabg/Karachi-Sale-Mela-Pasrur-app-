@@ -20,6 +20,9 @@ interface DailyArrivalDao {
     @Query("DELETE FROM daily_arrivals WHERE id = :id")
     suspend fun deleteArrivalById(id: Int)
 
+    @Query("UPDATE daily_arrivals SET imageResName = :newImageUri WHERE id = :id")
+    suspend fun updateArrivalImage(id: Int, newImageUri: String)
+
     @Query("SELECT COUNT(*) FROM daily_arrivals")
     suspend fun getCount(): Int
 }

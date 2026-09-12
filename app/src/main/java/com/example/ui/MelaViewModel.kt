@@ -9,17 +9,20 @@ import kotlinx.coroutines.launch
 
 enum class AppSection(val label: String) {
     HOME("Home"),
-    VARIETIES("Our Varieties"),
+    VARIETIES("Categories"),
+    SEARCH("Search"),
     DAILY_ARRIVALS("Daily Arrivals"),
     GALLERY("Shop Gallery"),
     VISIT_SHOP("Visit Our Shop"),
     PROPRIETOR("Proprietor"),
-    CONTACT("Contact WhatsApp"),
-    ABOUT("About Us")
+    CONTACT("Contact"),
+    ABOUT("About Us"),
+    MORE("More")
 }
 
 class MelaViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: MelaRepository
+    val securityManager = SecurityManager(application)
 
     val currentSection = MutableStateFlow(AppSection.HOME)
     val varietySearchQuery = MutableStateFlow("")
@@ -27,6 +30,33 @@ class MelaViewModel(application: Application) : AndroidViewModel(application) {
     val showAddArrivalDialog = MutableStateFlow(false)
 
     val allArrivals: StateFlow<List<DailyArrivalEntity>>
+    val session: StateFlow<UserSession> = securityManager.session
+    val customNotice: StateFlow<String> = securityManager.customNotice
+    val autoCheckUpdates: StateFlow<Boolean> = securityManager.autoCheckUpdates
+    val lastUpdateCheck: StateFlow<Long> = securityManager.lastUpdateCheck
+    val appVersion: StateFlow<String> = securityManager.appVersion
+    val isUpdateApplied: StateFlow<Boolean> = securityManager.isUpdateApplied
+    val customItemPictures: StateFlow<Map<Int, String>> = securityManager.customItemPictures
+
+    fun updateItemPicture(itemId: Int, imageUriOrRes: String) {
+        securityManager.saveItemPicture(itemId, imageUriOrRes)
+    }
+
+    fun removeItemPicture(itemId: Int) {
+        securityManager.removeItemPicture(itemId)
+    }
+
+    fun setAutoCheckUpdates(enabled: Boolean) {
+        securityManager.setAutoCheckUpdates(enabled)
+    }
+
+    fun recordUpdateCheck() {
+        securityManager.recordUpdateCheck()
+    }
+
+    fun applyAppUpdate(newVersion: String = "v1.3") {
+        securityManager.applyAppUpdate(newVersion)
+    }
 
     init {
         val database = AppDatabase.getDatabase(application)
@@ -41,6 +71,22 @@ class MelaViewModel(application: Application) : AndroidViewModel(application) {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+    }
+
+    fun loginAsManager(pin: String): Boolean {
+        return securityManager.loginAsManager(pin)
+    }
+
+    fun loginAsCustomer(name: String, phone: String, city: String): Boolean {
+        return securityManager.loginAsCustomer(name, phone, city)
+    }
+
+    fun logout() {
+        securityManager.logout()
+    }
+
+    fun updateNotice(notice: String) {
+        securityManager.updateNotice(notice)
     }
 
     val filteredVarieties: StateFlow<List<VarietyItem>> = combine(
@@ -83,7 +129,8 @@ class MelaViewModel(application: Application) : AndroidViewModel(application) {
         category: String,
         priceTier: String,
         arrivalDate: String,
-        description: String
+        description: String,
+        imageResName: String = "img_shop_interior"
     ) {
         viewModelScope.launch {
             val arrival = DailyArrivalEntity(
@@ -92,11 +139,17 @@ class MelaViewModel(application: Application) : AndroidViewModel(application) {
                 priceTier = priceTier,
                 arrivalDate = arrivalDate.ifBlank { "Today's Arrival" },
                 description = description,
-                imageResName = "img_shop_interior",
+                imageResName = imageResName,
                 timestamp = System.currentTimeMillis()
             )
             repository.addArrival(arrival)
             showAddArrivalDialog.value = false
+        }
+    }
+
+    fun updateArrivalImage(id: Int, newImageUriOrRes: String) {
+        viewModelScope.launch {
+            repository.updateArrivalImage(id, newImageUriOrRes)
         }
     }
 

@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -48,50 +49,130 @@ fun KarachiSaleMelaApp(
 ) {
     val currentSection by viewModel.currentSection.collectAsStateWithLifecycle()
     val dailyArrivals by viewModel.allArrivals.collectAsStateWithLifecycle()
+    val session by viewModel.session.collectAsStateWithLifecycle()
+    val appVersion by viewModel.appVersion.collectAsStateWithLifecycle()
+    val isUpdateApplied by viewModel.isUpdateApplied.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var showWhatsAppDialog by remember { mutableStateOf(false) }
+    var showSafeAppDialog by remember { mutableStateOf(false) }
+    var showSecurityLoginDialog by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "KARACHI SALE MELA",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 16.sp,
+                                letterSpacing = 0.5.sp,
+                                color = Color(0xFF211400),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = MelaBurgundy,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "VIP",
+                                    color = MelaGoldLight,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
                         Text(
-                            text = "Karachi Sale Mela",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Pasrur • Loharan Mandi Bazaar",
+                            text = if (session.isLoggedIn) "Logged in: ${session.name} • Pasrur" else "PASRUR • VIP BRAND",
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF5A4110),
                             maxLines = 1
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.navigateTo(AppSection.HOME) }) {
+                    IconButton(onClick = { viewModel.navigateTo(AppSection.MORE) }) {
                         Icon(
-                            imageVector = Icons.Default.Store,
-                            contentDescription = "Home Shop",
-                            tint = Color.White
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color(0xFF211400)
                         )
                     }
                 },
                 actions = {
-                    // Google Maps direct action
+                    // Notification Bell (Daily Arrivals)
                     IconButton(
-                        onClick = { launchGoogleMaps(context) },
-                        modifier = Modifier.testTag("topbar_maps_btn")
+                        onClick = { viewModel.navigateTo(AppSection.DAILY_ARRIVALS) },
+                        modifier = Modifier.testTag("topbar_notifications_btn")
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Open in Google Maps",
-                            tint = Color.White
-                        )
+                        BadgedBox(
+                            badge = {
+                                if (dailyArrivals.isNotEmpty()) {
+                                    Badge(
+                                        containerColor = MelaCrimson,
+                                        contentColor = Color.White
+                                    ) {
+                                        Text("${dailyArrivals.size}")
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "New Arrivals",
+                                tint = Color(0xFF211400),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    // Safe App Verified direct action
+                    IconButton(
+                        onClick = { showSafeAppDialog = true },
+                        modifier = Modifier.testTag("topbar_safe_app_btn")
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF2E7D32),
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.VerifiedUser,
+                                    contentDescription = "Safe App Verified",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Security Login action
+                    IconButton(
+                        onClick = { showSecurityLoginDialog = true },
+                        modifier = Modifier.testTag("topbar_security_login_btn")
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (session.isLoggedIn) MelaBurgundy else Color(0xFF211400).copy(alpha = 0.12f),
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (session.isLoggedIn) Icons.Default.LockOpen else Icons.Default.Lock,
+                                    contentDescription = "Security Login",
+                                    tint = if (session.isLoggedIn) MelaGoldLight else Color(0xFF211400),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
 
                     // WhatsApp quick contact
@@ -102,21 +183,21 @@ fun KarachiSaleMelaApp(
                         Icon(
                             imageVector = Icons.Default.Chat,
                             contentDescription = "WhatsApp Us",
-                            tint = WhatsAppGreen
+                            tint = Color(0xFF1B5E20)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MelaCrimson,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    containerColor = MelaTopBarGold,
+                    titleContentColor = Color(0xFF211400),
+                    navigationIconContentColor = Color(0xFF211400),
+                    actionIconContentColor = Color(0xFF211400)
                 )
             )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = MelaBurgundy,
                 tonalElevation = 8.dp,
                 windowInsets = WindowInsets.navigationBars,
                 modifier = Modifier.testTag("bottom_nav_bar")
@@ -126,84 +207,79 @@ fun KarachiSaleMelaApp(
                     selected = currentSection == AppSection.HOME,
                     onClick = { viewModel.navigateTo(AppSection.HOME) },
                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home", fontSize = 11.sp) },
+                    label = { Text("Home", fontSize = 11.sp, fontWeight = if (currentSection == AppSection.HOME) FontWeight.Bold else FontWeight.Normal) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        indicatorColor = MelaCrimson,
-                        selectedTextColor = MelaCrimson
+                        selectedIconColor = MelaGoldLight,
+                        selectedTextColor = MelaGoldLight,
+                        unselectedIconColor = Color(0xFFE5D5C5),
+                        unselectedTextColor = Color(0xFFE5D5C5),
+                        indicatorColor = Color(0xFF9E1B1B)
                     ),
                     modifier = Modifier.testTag("nav_home")
                 )
 
-                // 2. Varieties
+                // 2. Categories
                 NavigationBarItem(
                     selected = currentSection == AppSection.VARIETIES,
                     onClick = { viewModel.navigateTo(AppSection.VARIETIES) },
-                    icon = { Icon(Icons.Default.Category, contentDescription = "Varieties") },
-                    label = { Text("Varieties", fontSize = 11.sp) },
+                    icon = { Icon(Icons.Default.GridView, contentDescription = "Categories") },
+                    label = { Text("Categories", fontSize = 11.sp, fontWeight = if (currentSection == AppSection.VARIETIES) FontWeight.Bold else FontWeight.Normal) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        indicatorColor = MelaCrimson,
-                        selectedTextColor = MelaCrimson
+                        selectedIconColor = MelaGoldLight,
+                        selectedTextColor = MelaGoldLight,
+                        unselectedIconColor = Color(0xFFE5D5C5),
+                        unselectedTextColor = Color(0xFFE5D5C5),
+                        indicatorColor = Color(0xFF9E1B1B)
                     ),
                     modifier = Modifier.testTag("nav_varieties")
                 )
 
-                // 3. Daily Arrivals
+                // 3. Search
                 NavigationBarItem(
-                    selected = currentSection == AppSection.DAILY_ARRIVALS,
-                    onClick = { viewModel.navigateTo(AppSection.DAILY_ARRIVALS) },
-                    icon = {
-                        BadgedBox(
-                            badge = {
-                                if (dailyArrivals.isNotEmpty()) {
-                                    Badge(
-                                        containerColor = MelaGold,
-                                        contentColor = Color.White
-                                    ) {
-                                        Text("${dailyArrivals.size}")
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.NewReleases, contentDescription = "Daily Arrivals")
-                        }
-                    },
-                    label = { Text("Arrivals", fontSize = 11.sp) },
+                    selected = currentSection == AppSection.SEARCH,
+                    onClick = { viewModel.navigateTo(AppSection.SEARCH) },
+                    icon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                    label = { Text("Search", fontSize = 11.sp, fontWeight = if (currentSection == AppSection.SEARCH) FontWeight.Bold else FontWeight.Normal) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        indicatorColor = MelaCrimson,
-                        selectedTextColor = MelaCrimson
+                        selectedIconColor = MelaGoldLight,
+                        selectedTextColor = MelaGoldLight,
+                        unselectedIconColor = Color(0xFFE5D5C5),
+                        unselectedTextColor = Color(0xFFE5D5C5),
+                        indicatorColor = Color(0xFF9E1B1B)
                     ),
-                    modifier = Modifier.testTag("nav_arrivals")
+                    modifier = Modifier.testTag("nav_search")
                 )
 
-                // 4. Gallery
+                // 4. Contact
                 NavigationBarItem(
-                    selected = currentSection == AppSection.GALLERY,
-                    onClick = { viewModel.navigateTo(AppSection.GALLERY) },
-                    icon = { Icon(Icons.Default.PhotoLibrary, contentDescription = "Gallery") },
-                    label = { Text("Gallery", fontSize = 11.sp) },
+                    selected = currentSection in listOf(AppSection.CONTACT, AppSection.VISIT_SHOP),
+                    onClick = { viewModel.navigateTo(AppSection.CONTACT) },
+                    icon = { Icon(Icons.Default.Call, contentDescription = "Contact") },
+                    label = { Text("Contact", fontSize = 11.sp, fontWeight = if (currentSection in listOf(AppSection.CONTACT, AppSection.VISIT_SHOP)) FontWeight.Bold else FontWeight.Normal) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        indicatorColor = MelaCrimson,
-                        selectedTextColor = MelaCrimson
+                        selectedIconColor = MelaGoldLight,
+                        selectedTextColor = MelaGoldLight,
+                        unselectedIconColor = Color(0xFFE5D5C5),
+                        unselectedTextColor = Color(0xFFE5D5C5),
+                        indicatorColor = Color(0xFF9E1B1B)
                     ),
-                    modifier = Modifier.testTag("nav_gallery")
+                    modifier = Modifier.testTag("nav_contact")
                 )
 
-                // 5. Visit & Contact
+                // 5. More
                 NavigationBarItem(
-                    selected = currentSection in listOf(AppSection.VISIT_SHOP, AppSection.PROPRIETOR, AppSection.CONTACT, AppSection.ABOUT),
-                    onClick = { viewModel.navigateTo(AppSection.VISIT_SHOP) },
-                    icon = { Icon(Icons.Default.Place, contentDescription = "Visit & Contact") },
-                    label = { Text("Visit", fontSize = 11.sp) },
+                    selected = currentSection == AppSection.MORE || currentSection == AppSection.GALLERY || currentSection == AppSection.DAILY_ARRIVALS || currentSection == AppSection.PROPRIETOR || currentSection == AppSection.ABOUT,
+                    onClick = { viewModel.navigateTo(AppSection.MORE) },
+                    icon = { Icon(Icons.Default.Menu, contentDescription = "More") },
+                    label = { Text("More", fontSize = 11.sp, fontWeight = if (currentSection == AppSection.MORE) FontWeight.Bold else FontWeight.Normal) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        indicatorColor = MelaCrimson,
-                        selectedTextColor = MelaCrimson
+                        selectedIconColor = MelaGoldLight,
+                        selectedTextColor = MelaGoldLight,
+                        unselectedIconColor = Color(0xFFE5D5C5),
+                        unselectedTextColor = Color(0xFFE5D5C5),
+                        indicatorColor = Color(0xFF9E1B1B)
                     ),
-                    modifier = Modifier.testTag("nav_visit")
+                    modifier = Modifier.testTag("nav_more")
                 )
             }
         },
@@ -219,12 +295,22 @@ fun KarachiSaleMelaApp(
                     HomeScreen(
                         viewModel = viewModel,
                         dailyArrivals = dailyArrivals,
-                        onNavigate = { section -> viewModel.navigateTo(section) }
+                        appVersion = appVersion,
+                        onNavigate = { section -> viewModel.navigateTo(section) },
+                        onOpenSafeAppInfo = { showSafeAppDialog = true },
+                        onOpenSecurityLogin = { showSecurityLoginDialog = true },
+                        onOpenUpdateCenter = { showUpdateDialog = true }
                     )
                 }
 
                 AppSection.VARIETIES -> {
                     VarietiesScreen(
+                        viewModel = viewModel
+                    )
+                }
+
+                AppSection.SEARCH -> {
+                    SearchScreen(
                         viewModel = viewModel
                     )
                 }
@@ -240,11 +326,26 @@ fun KarachiSaleMelaApp(
                     GalleryScreen()
                 }
 
+                AppSection.MORE -> {
+                    MoreScreen(
+                        session = session,
+                        appVersion = appVersion,
+                        onNavigate = { section -> viewModel.navigateTo(section) },
+                        onOpenSafeAppInfo = { showSafeAppDialog = true },
+                        onOpenSecurityLogin = { showSecurityLoginDialog = true },
+                        onOpenUpdateCenter = { showUpdateDialog = true }
+                    )
+                }
+
                 AppSection.VISIT_SHOP,
                 AppSection.PROPRIETOR,
                 AppSection.CONTACT,
                 AppSection.ABOUT -> {
-                    VisitContactScreen()
+                    VisitContactScreen(
+                        appVersion = appVersion,
+                        onOpenSafeAppInfo = { showSafeAppDialog = true },
+                        onOpenUpdateCenter = { showUpdateDialog = true }
+                    )
                 }
             }
         }
@@ -313,6 +414,50 @@ fun KarachiSaleMelaApp(
                     Text("Close")
                 }
             }
+        )
+    }
+
+    // Safe App Verified & Not Harmful Dialog
+    if (showSafeAppDialog) {
+        SafeAppDialog(
+            onDismiss = { showSafeAppDialog = false }
+        )
+    }
+
+    // Security Login Dialog
+    if (showSecurityLoginDialog) {
+        SecurityLoginDialog(
+            session = session,
+            onManagerLogin = { pin -> viewModel.loginAsManager(pin) },
+            onCustomerLogin = { name, phone, city -> viewModel.loginAsCustomer(name, phone, city) },
+            onLogout = { viewModel.logout() },
+            onUpdateNotice = { notice -> viewModel.updateNotice(notice) },
+            onShowSafeAppInfo = {
+                showSecurityLoginDialog = false
+                showSafeAppDialog = true
+            },
+            onDismiss = { showSecurityLoginDialog = false }
+        )
+    }
+
+    // App Update & Version Center Dialog
+    if (showUpdateDialog) {
+        val autoCheckEnabled by viewModel.autoCheckUpdates.collectAsStateWithLifecycle()
+        val lastCheckTime by viewModel.lastUpdateCheck.collectAsStateWithLifecycle()
+        AppUpdateDialog(
+            session = session,
+            installedVersion = appVersion,
+            isUpdateApplied = isUpdateApplied,
+            autoCheckEnabled = autoCheckEnabled,
+            lastCheckTime = lastCheckTime,
+            onToggleAutoCheck = { viewModel.setAutoCheckUpdates(it) },
+            onRecordCheck = { viewModel.recordUpdateCheck() },
+            onApplyUpdate = { newVer -> viewModel.applyAppUpdate(newVer) },
+            onOpenNoticeEditor = {
+                showUpdateDialog = false
+                showSecurityLoginDialog = true
+            },
+            onDismiss = { showUpdateDialog = false }
         )
     }
 }

@@ -34,7 +34,10 @@ object MelaConstants {
     const val DISPLAY_DANISH = "03216671694"
     
     const val PHONE_HAMZA = "923074029245"
-    const val DISPLAY_HAMZA = "03074029245"
+    const val DISPLAY_HAMZA = "0307-4029245"
+
+    const val PHONE_AMRAN = "923217624996"
+    const val DISPLAY_AMRAN = "03217624996"
 
     const val SHOP_ADDRESS = "7M76+94R Karachi Sale Mela Pasrur, Near Naseem Hayat Shaheed Rd, Loharan Mandi Bazaar, Walled City, Pasrur, 51480"
     const val PLUS_CODE = "7M76+94R Pasrur"

@@ -13,9 +13,9 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = MelaCrimsonLight,
-    onPrimary = Color.White,
-    primaryContainer = MelaCrimsonDark,
+    primary = MelaGoldLight,
+    onPrimary = Color(0xFF211400),
+    primaryContainer = MelaBurgundyDark,
     onPrimaryContainer = Color.White,
     secondary = MelaGoldLight,
     onSecondary = Color.Black,
@@ -26,34 +26,34 @@ private val DarkColorScheme =
     tertiaryContainer = WhatsAppGreenDark,
     onTertiaryContainer = Color.White,
     background = MelaBackgroundDark,
-    onBackground = Color(0xFFF1EAE4),
+    onBackground = Color(0xFFFBF4E8),
     surface = MelaSurfaceDark,
-    onSurface = Color(0xFFF1EAE4),
+    onSurface = Color(0xFFFBF4E8),
     surfaceVariant = MelaSurfaceVariantDark,
-    onSurfaceVariant = Color(0xFFD7CCC8)
+    onSurfaceVariant = Color(0xFFE4D5C2)
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = MelaCrimson,
+    primary = MelaBurgundy,
     onPrimary = Color.White,
-    primaryContainer = MelaCrimsonContainer,
-    onPrimaryContainer = MelaCrimsonDark,
-    secondary = MelaGold,
-    onSecondary = Color.White,
+    primaryContainer = MelaTopBarGold,
+    onPrimaryContainer = Color(0xFF211400),
+    secondary = MelaGoldPrimary,
+    onSecondary = Color(0xFF211400),
     secondaryContainer = MelaGoldContainer,
-    onSecondaryContainer = Color(0xFF662200),
+    onSecondaryContainer = Color(0xFF5D3100),
     tertiary = WhatsAppGreenDark,
     onTertiary = Color.White,
     tertiaryContainer = WhatsAppGreenLight,
     onTertiaryContainer = Color(0xFF003914),
     background = MelaBackgroundLight,
-    onBackground = Color(0xFF231A18),
-    surface = MelaCardLight,
-    onSurface = Color(0xFF231A18),
+    onBackground = Color(0xFF211400),
+    surface = MelaSurfaceLight,
+    onSurface = Color(0xFF211400),
     surfaceVariant = MelaSurfaceVariantLight,
-    onSurfaceVariant = Color(0xFF554440),
-    outline = Color(0xFFD6C8C0)
+    onSurfaceVariant = Color(0xFF4A3B2C),
+    outline = MelaGoldBorder
   )
 
 @Composable
